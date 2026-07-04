@@ -1,0 +1,21 @@
+# Core numerical and data-handling stack
+pandas>=1.5
+numpy>=1.23
+scipy>=1.10
+
+# Machine learning
+scikit-learn>=1.2
+hdbscan>=0.8.29
+statsmodels>=0.13
+
+# Excel I/O
+openpyxl>=3.1
+
+# Plotting
+matplotlib>=3.6
+seaborn>=0.12
+
+# For 01_data_collection.py only (Google Street View download)
+googlemaps>=4.10
+requests>=2.28
+Pillow>=9.4
