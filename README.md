@@ -38,7 +38,7 @@ The pipeline covers:
 ├── LICENSE                     # MIT
 ├── README.md
 └── data/
-    └── pixel_shares.xlsx       # 74 streets × 12 features (after QC)
+    └── istanbul_streets_master.xlsx    # 74 streets, semantic segmentation + safety labels
 ```
 
 ---
