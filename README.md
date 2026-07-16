@@ -75,8 +75,12 @@ python 02_analysis_pipeline.py
 
 Outputs (Excel + PNG) are written to `./outputs/`.
 
-All stochastic operations use `random_state = 42`. Rerunning the pipeline
-produces the exact values reported in the manuscript.
+All stochastic operations use random_state = 42. Rerunning the pipeline 
+reproduces the deterministic statistics reported in the manuscript 
+exactly (silhouette, chi-square, Cramér's V, cluster sizes, cophenetic, 
+HDBSCAN noise). Monte Carlo procedures (mean pairwise ARI and bootstrap 
+consensus stability) may vary by ±3% across runs due to their 
+stochastic nature.
 
 ### 3. (Optional) Reproduce the data collection
 
