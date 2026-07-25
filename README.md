@@ -1,5 +1,5 @@
 # Istanbul as a Layered Gradient
-
+https://github.com/Arch9234/istanbul-layered-gradient/blob/main/README.md
 Reproducibility materials for the manuscript:
 
 > **"Istanbul as a Layered Gradient: A Structural Analysis of Street-Scale
@@ -135,13 +135,22 @@ Full comparison is written to `outputs/cluster_results_main.xlsx` and
 
 ## Data note
 
-- **Neighborhood-level safety scores** were derived from Bilen (2016),
-  a publicly available doctoral thesis.
-- **Original Google Street View panoramas** are not redistributed because
-  of Google's terms of service.
-- **Per-street pixel-share vectors** (the analysis-ready dataset) are
-  included in `data/pixel_shares.xlsx`.
+## Data note
 
+- **Neighborhood-level safety scores** were derived from Bilen (2016), 
+  a publicly available doctoral thesis.
+- **Original Google Street View panoramas** are not redistributed because 
+  of Google's terms of service.
+- **Per-street pixel-share vectors and safety labels** (the analysis-ready
+  dataset) are included in `data/istanbul_streets_master.xlsx`.
+- **Binary safety labels (safety_class column):** Streets are labeled 
+  "Safe" if their neighborhood's Bilen score exceeds 17.55 (median 
+  threshold, per Section 3.1 of the manuscript) and "Unsafe" otherwise. 
+  Firüzköy (score = 17.55) is classified as Unsafe.
+- **Safety band assignment (Section 3.2 of the manuscript):** Firüzköy 
+  (bilen_score = 17.55) is grouped with Middle following the manuscript's 
+  methodological choice; the mapping is implemented in `NEIGHBORHOOD_BAND` 
+  in `02_analysis_pipeline.py`.
 ---
 
 ## License
