@@ -1,163 +1,136 @@
-# Istanbul as a Layered Gradient
-https://github.com/Arch9234/istanbul-layered-gradient/blob/main/README.md
-Reproducibility materials for the manuscript:
-
-> **"Istanbul as a Layered Gradient: A Structural Analysis of Street-Scale
-> Urban Fabric in a Sample Guided by Classical Urban Safety Theories"**
->
-> Currently under peer review at *Environment and Planning B: Urban
-> Analytics and City Science*.
-
----
-
-## Overview
-
-This repository contains the full analysis pipeline for a semantic-segmentation
-and clustering study of 74 streets in Istanbul, selected through
-theory-informed purposive sampling from Bilen (2016) safety-index
-neighborhoods.
-
-The pipeline covers:
-
-1. **Data collection** — Google Street View Static API, 12 sampling points × 12 headings per street.
-2. **Semantic segmentation** — DeepLabv3+ (Xception-65, Cityscapes pre-trained), 12 retained pixel-share features.
-3. **Clustering** — K-means (k = 3), cluster labels renumbered by ascending mean building-pixel share.
-4. **Statistical tests** — chi-square with bias-corrected Cramér's V (Bergsma, 2013), Kruskal-Wallis with FDR correction, Spearman correlation at neighborhood scale, logistic regression (McFadden / Nagelkerke / Cox-Snell).
-5. **Five robustness tests** — silhouette sweep, HDBSCAN noise, GMM assignment uncertainty, Ward-linkage cophenetic correlation, bootstrap consensus matrix (1000 iterations, threshold ≥ 0.80).
-6. **Sensitivity analysis** — full pipeline rerun excluding Firüzköy (n = 60).
-
----
-
-## Repository structure
-
-```
-.
-├── 01_data_collection.py       # Google Street View download
-├── 02_analysis_pipeline.py     # Full analysis and robustness tests
-├── requirements.txt            # Python dependencies
-├── LICENSE                     # MIT
-├── README.md
-└── data/
-    └── istanbul_streets_master.xlsx    # 74 streets, semantic segmentation + safety labels
-```
-
----
-
 ## Requirements
 
-- Python 3.9 or later
-- See `requirements.txt` for the full list.
-
-Key libraries: `pandas`, `numpy`, `scipy`, `scikit-learn`, `hdbscan`,
-`matplotlib`, `seaborn`, `statsmodels`, `openpyxl`.
-
-For the data-collection step only: `googlemaps`, `requests`, `Pillow`.
-
----
-
-## Reproducing the analysis
-
-### 1. Set up the environment
+Python 3.9 or later. Install dependencies with:
 
 ```bash
 pip install -r requirements.txt
 ```
 
+Key libraries: `pandas`, `numpy`, `scipy`, `scikit-learn`, `hdbscan`,
+`statsmodels`, `scikit-posthocs` (for DSCF post-hoc), `matplotlib`,
+`seaborn`, `openpyxl`.
+
+## Reproducing the analysis
+
+### 1. Data collection (optional)
+
+The `01_data_collection.py` script reproduces the Street View
+download using the Google Street View Static API. It requires a
+valid Google API key set as an environment variable
+(`GOOGLE_STREETVIEW_API_KEY`) and a CSV of street start/end
+coordinates in `./data/streets_coords.csv`.
+
+Panoramas themselves are not redistributed in accordance with
+Google's Terms of Service.
+
 ### 2. Run the analysis pipeline
 
-The dataset (`data/pixel_shares.xlsx`) provided in this repository contains
-the 74 streets × 12 features matrix that resulted from the human-supervised
-quality-control step described in the manuscript (Section 3.5).
+The dataset (`data/istanbul_streets_master.xlsx`) provided in this
+repository contains 74 streets with semantic-segmentation pixel
+shares, safety labels, neighborhood-level Bilen scores, and safety
+band assignments resulting from the human-supervised quality-
+control step described in the manuscript (Section 3.5).
 
 ```bash
 python 02_analysis_pipeline.py
 ```
 
-Outputs (Excel + PNG) are written to `./outputs/`.
+Outputs (cluster assignments, DSCF post-hoc tables) are written to
+`./outputs/`.
 
-All stochastic operations use random_state = 42. Rerunning the pipeline 
-reproduces the deterministic statistics reported in the manuscript 
-exactly (silhouette, chi-square, Cramér's V, cluster sizes, cophenetic, 
-HDBSCAN noise). Monte Carlo procedures (mean pairwise ARI and bootstrap 
-consensus stability) may vary by ±3% across runs due to their 
-stochastic nature.
+All stochastic operations use `random_state = 42`. Rerunning the
+pipeline reproduces the deterministic statistics reported in the
+manuscript exactly (silhouette, chi-square, Cramér's V, cluster
+sizes, Kruskal-Wallis H, DSCF pairwise p-values, cophenetic,
+HDBSCAN noise). Monte Carlo procedures (mean pairwise ARI and
+bootstrap consensus stability) may vary by ±3% across runs due to
+their stochastic nature.
 
-### 3. (Optional) Reproduce the data collection
+### Note on figures
 
-If you want to regenerate the raw Street View panoramas, set your Google
-Maps Static API key as an environment variable:
-
-```bash
-export GOOGLE_MAPS_API_KEY=your_key_here
-python 01_data_collection.py
-```
-
-**Note.** Original Google Street View panoramas are not redistributed here
-because of Google's terms of service. The data-collection script allows
-users with a valid API key to reproduce the raw image set.
-
-
-
-## Expected outputs (verification)
-
-Running `02_analysis_pipeline.py` on the provided dataset should yield:
-
-**Main analysis (n = 74)**
-
-| Metric | Value |
-|---|---|
-| Selected k | 3 |
-| Silhouette | 0.207 |
-| PCA explained variance (PC1 + PC2) | 39.3% |
-| χ² (Cluster × Safety_Label) | 14.71 (p < 0.001) |
-| Bias-corrected Cramér's V | 0.417 |
-| Cophenetic correlation | 0.382 |
-| HDBSCAN noise (min_cluster_size = 3) | 33.8% |
-| Mean cross-method ARI | 0.261 |
-| Bootstrap stability (pairs ≥ 0.80) | 25.0% |
-
-**Sensitivity analysis (n = 60, Firüzköy excluded)**
-
-| Metric | Value |
-|---|---|
-| Selected k | 3 |
-| Silhouette | 0.156 |
-| χ² (Cluster × Safety_Label) | 3.73 (p = 0.155) |
-| Bias-corrected Cramér's V | 0.169 |
-| HDBSCAN noise | 76.7% |
-| Mean cross-method ARI | 0.164 |
-| Bootstrap stability | 19.7% |
-
-Full comparison is written to `outputs/cluster_results_main.xlsx` and
-`outputs/cluster_results_sensitivity.xlsx`.
-
----
+The manuscript's figures (Figures 1–5 in the main text, Figures
+S6–S11 in the Supplementary Material) were generated from the
+outputs of this pipeline using matplotlib. Because the underlying
+data and statistics are fully reproducible via
+`02_analysis_pipeline.py`, the visualization code is not included
+in this repository. Readers wishing to regenerate the figures can
+do so from the cross-tabulations produced by the pipeline; the
+cluster × safety band distribution (Figure S8) relies directly on
+the outputs of the main analysis block. The correspondence
+analysis (Figure 4 area) was performed in SPSS using the input
+file exported by the pipeline (`SPSS_prep.csv`, containing cluster
+assignments and safety-band labels).
 
 ## Data note
 
-## Data note
-
-- **Neighborhood-level safety scores** were derived from Bilen (2016), 
-  a publicly available doctoral thesis.
-- **Original Google Street View panoramas** are not redistributed because 
-  of Google's terms of service.
-- **Per-street pixel-share vectors and safety labels** (the analysis-ready
-  dataset) are included in `data/istanbul_streets_master.xlsx`.
-- **Binary safety labels (safety_class column):** Streets are labeled 
-  "Safe" if their neighborhood's Bilen score exceeds 17.55 (median 
-  threshold, per Section 3.1 of the manuscript) and "Unsafe" otherwise. 
-  Firüzköy (score = 17.55) is classified as Unsafe.
-- **Safety band assignment (Section 3.2 of the manuscript):** Firüzköy 
-  (bilen_score = 17.55) is grouped with Middle following the manuscript's 
-  methodological choice; the mapping is implemented in `NEIGHBORHOOD_BAND` 
-  in `02_analysis_pipeline.py`.
----
+- **Neighborhood-level safety scores** were derived from Bilen
+  (2016), a publicly available doctoral thesis.
+- **Original Google Street View panoramas** are not redistributed
+  because of Google's terms of service.
+- **Per-street pixel-share vectors and safety labels** (the
+  analysis-ready dataset) are included in
+  `data/istanbul_streets_master.xlsx`.
+- **Binary safety labels (safety_class column):** Streets are
+  labeled "Safe" if their neighborhood's Bilen score exceeds 17.55
+  (median threshold, per Section 3.1 of the manuscript) and
+  "Unsafe" otherwise. Firüzköy (score = 17.55) is classified as
+  Unsafe.
+- **Safety band assignment (Section 3.2 of the manuscript):**
+  Firüzköy (bilen_score = 17.55) is grouped with Middle following
+  the manuscript's methodological choice; the mapping is
+  implemented in `NEIGHBORHOOD_BAND` in `02_analysis_pipeline.py`.
 
 ## License
 
-- **Code**: MIT License (see `LICENSE`).
-- **Data**: CC-BY 4.0, except Google Street View imagery which remains
-  subject to Google's terms of service.
+Analysis code is distributed under the MIT License (see `LICENSE`).
+Bilen (2016) safety-score data is used under fair academic use;
+please cite the original thesis.
+
+## Expected outputs
+
+The pipeline reports and exports the following results, which match
+the values presented in the manuscript:
+
+### Main analysis (n = 74)
+
+- Silhouette peak: **0.207** (k = 3)
+- PCA (visualization only): PC1 + PC2 = 39.3% of variance
+- Chi-square (Cluster × Safety label): **14.71** (p < 0.001);
+  bias-corrected Cramér's V = **0.417**
+- Cophenetic correlation (Ward linkage): **0.382**
+- HDBSCAN noise ratio: **33.8%**
+- Mean pairwise ARI (K-means, HDBSCAN, GMM, Ward): **0.261**
+- Bootstrap consensus (1,000 K-means runs, threshold 0.80):
+  675 / 2,701 stable pairs (**25.0%**)
+- Correspondence analysis (Cluster × 3-band safety):
+  χ² = 27.02 (df = 4, p < 0.001); Dimension 1 = 92.3%,
+  Dimension 2 = 7.7% of inertia.
+
+### Sensitivity analysis (Firuzkoy excluded, n = 60)
+
+- Silhouette (k = 3): **0.156**
+- Chi-square (Cluster × Safety): **3.73** (p = 0.155)
+- Cramér's V (bias-corrected): **0.169**
+- Cophenetic correlation: **0.571**
+- HDBSCAN noise ratio: **76.7%**
+- Mean ARI (KM–GMM–Ward, HDBSCAN excluded due to > 75% noise):
+  **0.253**
+- Bootstrap stability ≥ 0.80: 348 / 1,770 (**19.7%**)
+- Cluster sizes: 24 / 31 / 5
+
+## References
+
+- **Bergsma W (2013)** — for bias-corrected Cramér's V. DOI:
+  https://doi.org/10.1016/j.jkss.2012.10.002
+- **Benjamini Y and Hochberg Y (1995)** — for FDR correction. DOI:
+  https://doi.org/10.1111/j.2517-6161.1995.tb02031.x
+- **Critchlow DE and Fligner MA (1991)** — for DSCF post-hoc
+  pairwise tests. DOI:
+  https://doi.org/10.1080/03610929108830487
+- **van Dam A et al. (2021)** — for correspondence analysis. DOI:
+  https://doi.org/10.1038/s41598-021-87971-9
+- **Bilen O (2016)** — Istanbul safety index. PhD thesis, Yildiz
+  Technical University.
 
 ---
 
