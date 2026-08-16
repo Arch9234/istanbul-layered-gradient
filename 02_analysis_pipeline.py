@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
 ================================================================================
 Istanbul as a Layered Gradient - Full Analysis Pipeline
 ================================================================================
@@ -31,19 +29,28 @@ Requirements:
     pandas, numpy, scipy, scikit-learn, hdbscan, statsmodels, openpyxl
 
 Data format:
-    Expects `data/istanbul_streets_master.xlsx` with a sheet named "streets"
-    containing 74 rows and columns including:
-        street_name_en, neighborhood, district, bilen_score, bilen_band,
-        safety_class, and 19 semantic-segmentation columns prefixed with seg_.
+    Expects an Excel file with a sheet named "streets" containing 74 rows
+    and columns including: street_name_en, neighborhood, district,
+    bilen_score, bilen_band, safety_class, and 19 semantic-segmentation
+    columns prefixed with seg_.
 
 Usage:
     pip install -r requirements.txt
     python 02_analysis_pipeline.py
 
+    If the data file is not found at DATA_PATH, the script will prompt you
+    to select it directly from your computer:
+      - In Google Colab: a native "Choose File" upload button appears.
+      - On a local machine with a display: a native file-picker dialog opens.
+      - In a headless/remote terminal: you'll be asked to type/paste the path.
+    You can also skip the prompt entirely by passing the path explicitly:
+      python 02_analysis_pipeline.py --data "C:\\path\\to\\istanbul_streets_master.xlsx"
+
 Outputs are written to ./outputs/.
 """
 
 import sys
+import argparse
 import warnings
 from pathlib import Path
 
@@ -104,11 +111,85 @@ FEATURES = [
 # =============================================================================
 # DATA LOADING AND PREPARATION
 # =============================================================================
-def load_data(path=DATA_PATH, sheet=DATA_SHEET):
-    if not path.exists():
-        print(f"ERROR: Data file not found at {path.absolute()}")
+def _prompt_for_file_colab():
+    """Open Colab's native upload widget and return the path to the saved file."""
+    from google.colab import files as colab_files
+    print("\nData file not found. Please choose the Excel file from your computer...")
+    uploaded = colab_files.upload()
+    if not uploaded:
+        print("ERROR: No file was uploaded.")
         sys.exit(1)
-    return pd.read_excel(path, sheet_name=sheet)
+    fname = list(uploaded.keys())[0]
+    DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
+    dest = DATA_PATH.parent / fname
+    with open(dest, "wb") as f:
+        f.write(uploaded[fname])
+    print(f"Saved uploaded file to: {dest.absolute()}")
+    return dest
+
+
+def _prompt_for_file_desktop():
+    """Open a native OS file-picker dialog (works on local Windows/Mac/Linux
+    machines with a display) and return the selected path."""
+    import tkinter as tk
+    from tkinter import filedialog
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+    print("\nData file not found. A file-picker window should have opened "
+          "(check your taskbar if you don't see it)...")
+    selected = filedialog.askopenfilename(
+        title="Select istanbul_streets_master.xlsx",
+        filetypes=[("Excel files", "*.xlsx *.xls"), ("All files", "*.*")],
+    )
+    root.destroy()
+    if not selected:
+        print("ERROR: No file was selected.")
+        sys.exit(1)
+    return Path(selected)
+
+
+def _prompt_for_file_headless():
+    """Fallback for headless/remote terminals without a display: ask the user
+    to type or paste the full path to the file."""
+    print("\nData file not found. Please type or paste the full path to the "
+          "Excel file (e.g. /home/user/istanbul_streets_master.xlsx):")
+    typed = input("> ").strip().strip('"').strip("'")
+    if not typed:
+        print("ERROR: No path was entered.")
+        sys.exit(1)
+    selected = Path(typed)
+    if not selected.exists():
+        print(f"ERROR: File not found at {selected.absolute()}")
+        sys.exit(1)
+    return selected
+
+
+def resolve_data_path(path):
+    """Return a valid path to the data file, prompting for direct PC upload
+    (Colab widget, desktop file dialog, or typed path) if the default/given
+    path does not exist."""
+    if path.exists():
+        return path
+
+    # Detect environment and pick the right upload method.
+    try:
+        import google.colab  # noqa: F401
+        return _prompt_for_file_colab()
+    except ImportError:
+        pass
+
+    try:
+        import tkinter  # noqa: F401
+        return _prompt_for_file_desktop()
+    except Exception:
+        return _prompt_for_file_headless()
+
+
+def load_data(path=DATA_PATH, sheet=DATA_SHEET):
+    resolved = resolve_data_path(path)
+    print(f"Loading data from: {resolved.absolute()}")
+    return pd.read_excel(resolved, sheet_name=sheet)
 
 
 def prepare_data(df_raw):
@@ -605,6 +686,18 @@ def print_summary(rm, rs):
 # ENTRY POINT
 # =============================================================================
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data", type=str, default=None,
+                         help="Path to istanbul_streets_master.xlsx. If omitted "
+                              "and the default path is not found, you will be "
+                              "prompted to select the file directly from your "
+                              "computer.")
+    args, _unknown = parser.parse_known_args()
+
+    global DATA_PATH
+    if args.data:
+        DATA_PATH = Path(args.data)
+
     print("=" * 70)
     print("Istanbul as a Layered Gradient  --  Full Analysis Pipeline")
     print("=" * 70)
@@ -613,7 +706,7 @@ def main():
     print(f"Random    : random_state = {RANDOM_STATE}")
     print(f"Output    : {OUTPUT_PATH.absolute()}")
 
-    df_raw = load_data()
+    df_raw = load_data(DATA_PATH)
 
     results_main = run_analysis(df_raw, label="MAIN")
     results_sens = run_sensitivity(df_raw)
@@ -624,4 +717,3 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
